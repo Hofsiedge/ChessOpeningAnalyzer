@@ -84,9 +84,13 @@ func (f *ChessComFetcher) Fetch(p ChessComFetchParams) ([]ChessComGame, error) {
 		}
 	}
 
-	// read open bracket
-	if _, err = decoder.Token(); err != nil {
-		return nil, fmt.Errorf("error decoding chess game JSON: %v", err)
+	var t json.Token
+
+	// read `{"games":`
+	for i := 0; i < 3; i++ {
+		if t, err = decoder.Token(); err != nil {
+			return nil, fmt.Errorf("error reading JSON token (%v) from the start of a game archive: %v", t, err)
+		}
 	}
 	for decoder.More() {
 		game := new(ChessComGame)

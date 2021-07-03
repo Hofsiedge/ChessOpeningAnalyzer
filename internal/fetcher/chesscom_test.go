@@ -92,18 +92,29 @@ func TestChessComRequest(t *testing.T) {
 
 func TestChessComUnmarshalling(t *testing.T) {
 	testCases := []struct {
-		fixture string
-		isError bool
+		fixture       string
+		isError       bool
 		expectedError string
-		want []ChessComGame
-		name string
+		want          []ChessComGame
+		name          string
 	}{{
 		fixture: "../../testdata/fetcher/empty.json",
-		isError: false,
-		want: []ChessComGame{},
-		name: "UnmarshalEmpty",
-	},
-	}
+		want:    []ChessComGame{},
+		name:    "UnmarshalEmpty",
+	}, {
+		fixture: "../../testdata/fetcher/trivial.json",
+		want: []ChessComGame{{
+			Url:         "game_url",
+			Pgn:         "PGN",
+			TimeControl: "60",
+			EndTime:     1622664410,
+			TimeClass:   "bullet",
+			Rules:       "chess",
+			White:       ChessComUser{Rating: 525, Result: "timeout", Id: "qux", Username: "qux"},
+			Black:       ChessComUser{Rating: 595, Result: "win", Id: "buzz", Username: "buzz"},
+		}},
+		name: "UnmarshalTrivial",
+	}}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
