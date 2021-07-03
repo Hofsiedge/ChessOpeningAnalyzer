@@ -1,4 +1,4 @@
-name: Test & coverage
+name: test
 on: [push, pull_request]
 
 jobs:
