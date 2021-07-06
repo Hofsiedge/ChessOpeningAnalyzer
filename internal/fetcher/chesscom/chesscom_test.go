@@ -1,7 +1,9 @@
-package fetcher
+package chesscom
 
 import (
 	"encoding/json"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/notnil/chess"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type server struct {
@@ -20,8 +23,8 @@ type server struct {
 
 type testCase struct {
 	Server           server
-	Params           ChessComFetchParams
-	ExpectedResponse []ChessComGame
+	Params           FetchParams
+	ExpectedResponse []Game
 	IsErr            bool
 	ExpectedError    string
 }
@@ -29,7 +32,7 @@ type testCase struct {
 func evaluateTestCases(testCases []testCase, t *testing.T) {
 	for i, testCase := range testCases {
 		ts := httptest.NewServer(http.HandlerFunc(testCase.Server.mockChessCom))
-		fetcher := ChessComFetcher{URL: ts.URL}
+		fetcher := Fetcher{URL: ts.URL}
 		resp, err := fetcher.Fetch(testCase.Params)
 		if testCase.IsErr {
 			if err == nil {
@@ -62,11 +65,11 @@ func (srv server) mockChessCom(w http.ResponseWriter, r *http.Request) {
 func TestChessComRequest(t *testing.T) {
 	testCases := []testCase{{
 		Server: server{
-			Response:   ChessComErrorResponse{0, "Date cannot be set in the future"},
+			Response:   ErrorResponse{0, "Date cannot be set in the future"},
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: ChessComFetchParams{
+		Params: FetchParams{
 			userName: "Hofsiedge",
 			year:     2100,
 			month:    10,
@@ -75,11 +78,11 @@ func TestChessComRequest(t *testing.T) {
 		ExpectedError: "non-OK StatusCode: 404; error: {0 Date cannot be set in the future}",
 	}, {
 		Server: server{
-			Response:   ChessComErrorResponse{0, "User \\\"NonExistentUser\\\" not found."},
+			Response:   ErrorResponse{0, "User \\\"NonExistentUser\\\" not found."},
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: ChessComFetchParams{
+		Params: FetchParams{
 			userName: "NonExistentUser",
 			year:     2020,
 			month:    6,
@@ -91,27 +94,31 @@ func TestChessComRequest(t *testing.T) {
 }
 
 func TestChessComUnmarshalling(t *testing.T) {
+
+	board := chess.NewGame()
+	for _, move := range []string{"e4", "e5"} {
+		if err := board.MoveStr(move); err != nil {
+			panic(err)
+		}
+	}
+	board.Resign(chess.White)
+
 	testCases := []struct {
 		fixture       string
 		isError       bool
 		expectedError string
-		want          []ChessComGame
+		want          []*fetcher.UserGame
 		name          string
 	}{{
-		fixture: "../../testdata/fetcher/empty.json",
-		want:    []ChessComGame{},
+		fixture: "../../../testdata/fetcher/empty.json",
+		want:    []*fetcher.UserGame{},
 		name:    "UnmarshalEmpty",
 	}, {
-		fixture: "../../testdata/fetcher/trivial.json",
-		want: []ChessComGame{{
-			Url:         "game_url",
-			Pgn:         "PGN",
-			TimeControl: "60",
-			EndTime:     1622664410,
-			TimeClass:   "bullet",
-			Rules:       "chess",
-			White:       ChessComUser{Rating: 525, Result: "timeout", Id: "qux", Username: "qux"},
-			Black:       ChessComUser{Rating: 595, Result: "win", Id: "buzz", Username: "buzz"},
+		fixture: "../../../testdata/fetcher/trivial.json",
+		want: []*fetcher.UserGame{{
+			White:   true,
+			EndTime: time.Unix(1622664410, 0),
+			Moves:   board.Moves(),
 		}},
 		name: "UnmarshalTrivial",
 	}}
@@ -129,8 +136,8 @@ func TestChessComUnmarshalling(t *testing.T) {
 				_, _ = w.Write(rawData)
 				_ = r.Body.Close()
 			}))
-			fetcher := ChessComFetcher{URL: ts.URL}
-			games, err := fetcher.Fetch(ChessComFetchParams{})
+			f := Fetcher{URL: ts.URL}
+			games, err := f.Fetch(FetchParams{userName: "qux"})
 			if err == nil && testCase.isError {
 				t.Errorf("Expected error, got nil")
 			}
@@ -141,7 +148,7 @@ func TestChessComUnmarshalling(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(testCase.want, games) {
-				t.Errorf("case %v. Expected \"%v\" but got \"%v\"", testCase.name, testCase.want, games)
+				t.Errorf("case %v. Expected \"%#v\" but got \"%#v\"", testCase.name, testCase.want, games)
 			}
 		})
 	}
