@@ -83,6 +83,7 @@ func (g *PositionGraph) AddGame(game fetcher.UserGame) error {
 			g.positionMap[pos] = nextNode
 		}
 		currentNode.Moves = append(currentNode.Moves, &Move{nextNode, move})
+		currentNode = nextNode
 	}
 	return nil
 }
