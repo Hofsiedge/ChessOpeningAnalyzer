@@ -85,7 +85,11 @@ func (f *Fetcher) aggregate(results <-chan []*fetching.UserGame, errs <-chan err
 	go func() {
 		wg.Wait()
 		gamesCh <- games
-		errCh <- fmt.Errorf(strings.Join(aggregatedErrors, "\n"))
+		if len(aggregatedErrors) != 0 {
+			errCh <- fmt.Errorf(strings.Join(aggregatedErrors, "\n"))
+		} else {
+			errCh <- nil
+		}
 	}()
 	return gamesCh, errCh
 }

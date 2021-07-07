@@ -153,3 +153,30 @@ func TestChessComUnmarshalling(t *testing.T) {
 		})
 	}
 }
+
+func TestChessComRealData(t *testing.T) {
+	file, err := os.Open("../../../testdata/fetching/sample_response.json")
+	if err != nil {
+		t.Error("could not open a sample file")
+		return
+	}
+	responseData, _ := io.ReadAll(file)
+	srv := server{
+		Response:   responseData,
+		StatusCode: 200,
+		HasBody:    true,
+	}
+	ts := httptest.NewServer(http.HandlerFunc(srv.mockChessCom))
+	fetcher := Fetcher{URL: ts.URL}
+	var games []*fetching.UserGame
+	if games, err = fetcher.Fetch("Hofsiedge", fetching.FilterOptions{
+		TimePeriodStart:  time.Date(2021, 7, 1, 0, 0, 0, 0, time.UTC),
+		TimePeriodEnd:    time.Date(2021, 7, 15, 0, 0, 0, 0, time.UTC),
+		NumberOfMovesCap: 5,
+	}, 1); err != nil {
+		t.Error(err)
+	}
+	if len(games) != 28 {
+		t.Errorf("expected 28 games, got %v", len(games))
+	}
+}
