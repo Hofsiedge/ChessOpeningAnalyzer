@@ -1,11 +1,10 @@
 package positions
 
 import (
-	"encoding/gob"
 	"fmt"
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
-	"os"
+	"strings"
 	"time"
 )
 
@@ -35,26 +34,6 @@ type PositionGraph struct {
 	PositionMap    map[FEN]*PositionNode
 }
 
-func DumpGraph(graph *PositionGraph, path string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	encoder := gob.NewEncoder(file)
-	return encoder.Encode(graph)
-}
-
-func LoadGraph(path string) (*PositionGraph, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	decoder := gob.NewDecoder(file)
-	graph := new(PositionGraph)
-	err = decoder.Decode(graph)
-	return graph, err
-}
-
 func NewPositionGraph(depth int) (*PositionGraph, error) {
 	if depth <= 1 {
 		return nil, fmt.Errorf("expected depth > 1, got: %v", depth)
@@ -76,6 +55,13 @@ func NewPositionGraph(depth int) (*PositionGraph, error) {
 	return &graph, nil
 }
 
+// truncateFEN removes move counters & last captures since they are not important for opening analysis.
+// It allows to build a more representative cache in PositionGraph.AddGame
+func truncateFEN(fen string) FEN {
+	words := strings.Split(fen, " ")
+	return FEN(strings.Join(words[:len(words)-3], " "))
+}
+
 // AddGame adds the first moves of the game to the position graph
 func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 	board := chess.NewGame()
@@ -90,7 +76,7 @@ func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 			return err
 		}
 		var nextNode *PositionNode
-		pos := FEN(board.Position().String())
+		pos := truncateFEN(board.Position().String())
 		if node, found := g.PositionMap[pos]; found {
 			nextNode = node
 		} else {
@@ -101,8 +87,8 @@ func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 				LastPlayed: game.EndTime,
 			}
 			g.PositionMap[pos] = nextNode
+			currentNode.Moves = append(currentNode.Moves, &Move{nextNode, move})
 		}
-		currentNode.Moves = append(currentNode.Moves, &Move{nextNode, move})
 		currentNode = nextNode
 	}
 	return nil

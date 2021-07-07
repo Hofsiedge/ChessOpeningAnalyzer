@@ -2,7 +2,6 @@ package positions
 
 import (
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -34,11 +33,18 @@ func TestAddGame(t *testing.T) {
 	for _, game := range games {
 		if err := graph.AddGame(game); err != nil {
 			t.Errorf("%v", err)
+			return
 		}
 	}
 
 	if len(graph.BlackPositions.Moves) != 0 {
 		t.Errorf("expected moves as black to be empty but got %v", graph.BlackPositions.Moves)
+	}
+	if m := graph.WhitePositions.Moves; len(m) != 1 {
+		t.Errorf("expected 1 move, got %v", m)
+	}
+	if m := graph.WhitePositions.Moves[0].To.Moves; len(m) != 2 {
+		t.Errorf("expected 2 moves, got %v", m)
 	}
 	expectedVariations := [][]string{
 		{"e4", "e5", "Nf3", "Nc6"},
@@ -55,29 +61,5 @@ func TestAddGame(t *testing.T) {
 				t.Errorf("wrong move %v - expected %v", move.Move, expected[i])
 			}
 		}
-	}
-}
-
-func TestGraphBinary(t *testing.T) {
-	graph, err := NewPositionGraph(4)
-	var moves []string
-	pgn := "\n1. e4 e5 2. Nf3 Nc6 3. d4 exd4 1-0\n\n"
-	if moves, err = fetching.ParseMoves(pgn, 4); err != nil {
-		t.Errorf("could not parse moves from a test PGN: %v;\nError: %v", pgn, err)
-	}
-	game := fetching.UserGame{
-		White:   true,
-		EndTime: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-		Moves:   moves,
-	}
-	if err := graph.AddGame(game); err != nil {
-		t.Errorf("%v", err)
-	}
-	if err = DumpGraph(graph, "../../../graph.bin"); err != nil {
-		t.Errorf("could not dump a PositionGraph: %v", err)
-		return
-	}
-	if newGraph, err := LoadGraph("../../../graph.bin"); err != nil || !reflect.DeepEqual(newGraph, graph) {
-		t.Errorf("could not load a PositionGraph - error: %v", err)
 	}
 }
