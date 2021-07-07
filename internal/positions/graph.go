@@ -2,7 +2,7 @@ package positions
 
 import (
 	"fmt"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
 	"time"
 )
@@ -56,7 +56,7 @@ func NewPositionGraph(depth int) (*PositionGraph, error) {
 }
 
 // AddGame adds the first moves of the game to the position graph
-func (g *PositionGraph) AddGame(game fetcher.UserGame) error {
+func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 	board := chess.NewGame()
 	var currentNode *PositionNode
 	if game.White {

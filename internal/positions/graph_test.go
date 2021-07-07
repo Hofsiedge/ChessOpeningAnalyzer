@@ -1,7 +1,7 @@
 package positions
 
 import (
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
 	"testing"
 	"time"
@@ -19,13 +19,13 @@ func TestAddGame(t *testing.T) {
 		"\n1. e4 c5 2. c3 Nc6 3. d4 cxd4 1-0\n\n",
 	}
 	for i := range PGNs {
-		if moves[i], err = fetcher.ParseMoves(PGNs[i], 4); err != nil {
+		if moves[i], err = fetching.ParseMoves(PGNs[i], 4); err != nil {
 			t.Errorf("could not parse moves from a test PGN: %v;\nError: %v", PGNs[i], err)
 		}
 	}
-	games := make([]fetcher.UserGame, 2)
+	games := make([]fetching.UserGame, 2)
 	for i, m := range moves {
-		games[i] = fetcher.UserGame{
+		games[i] = fetching.UserGame{
 			White:   true,
 			EndTime: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 			Moves:   m,
