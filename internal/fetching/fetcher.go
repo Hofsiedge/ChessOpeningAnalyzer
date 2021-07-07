@@ -1,4 +1,4 @@
-package fetcher
+package fetching
 
 import (
 	"fmt"
@@ -15,6 +15,18 @@ type UserGame struct {
 
 type ConvertibleToUserGame interface {
 	UserGame(username string, until int) (*UserGame, error)
+}
+
+type FilterOptions struct {
+	TimePeriodStart  time.Time
+	TimePeriodEnd    time.Time
+	Color            chess.Color
+	NumberOfMovesCap int
+	// TODO: time control
+}
+
+type GameFetcher interface {
+	Fetch(username string, filter FilterOptions, workers int) ([]*UserGame, error)
 }
 
 // ParseMoves parses first until moves from `pgn` PGN string

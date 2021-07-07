@@ -3,12 +3,15 @@ package chesscom
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
+
+const ChessComPubAPIUrl = "https://api.chess.com/pub"
 
 type ErrorResponse struct {
 	Code    int    `json:"code"`
@@ -17,6 +20,90 @@ type ErrorResponse struct {
 
 type Fetcher struct {
 	URL string
+}
+
+type monthYearPair struct {
+	Year  int
+	Month int
+}
+
+func (f *Fetcher) workerPool(workers int, jobs <-chan monthYearPair, username string, filter fetching.FilterOptions) (<-chan []*fetching.UserGame, <-chan error) {
+	results := make(chan []*fetching.UserGame, workers)
+	errors := make(chan error, workers)
+
+	wg := sync.WaitGroup{}
+	wg.Add(workers)
+	// worker pool
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer wg.Done()
+			for p := range jobs {
+				games, err := f.fetchMonthGames(fetchParams{
+					userName: username,
+					year:     p.Year,
+					month:    p.Month,
+					until:    filter.NumberOfMovesCap,
+				})
+				if err != nil {
+					errors <- fmt.Errorf("error parsing %d.%02d games of %v: %v", p.Year, p.Month, username, err)
+					continue
+				}
+				results <- games
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+	return results, errors
+}
+
+func (f *Fetcher) aggregate(results <-chan []*fetching.UserGame, errs <-chan error) (chan []*fetching.UserGame, chan error) {
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	// game aggregator
+	games := make([]*fetching.UserGame, 0)
+	go func() {
+		for result := range results {
+			games = append(games, result...)
+		}
+		wg.Done()
+	}()
+	// error aggregator
+	aggregatedErrors := make([]string, 0)
+	go func() {
+		for err := range errs {
+			aggregatedErrors = append(aggregatedErrors, err.Error())
+		}
+		wg.Done()
+	}()
+
+	gamesCh, errCh := make(chan []*fetching.UserGame, 1), make(chan error, 1)
+	go func() {
+		wg.Wait()
+		gamesCh <- games
+		errCh <- fmt.Errorf(strings.Join(aggregatedErrors, "\n"))
+	}()
+	return gamesCh, errCh
+}
+
+func (f *Fetcher) Fetch(username string, filter fetching.FilterOptions, workers int) ([]*fetching.UserGame, error) {
+	jobs := make(chan monthYearPair, workers)
+	results, errs := f.workerPool(workers, jobs, username, filter)
+	games, err := f.aggregate(results, errs)
+
+	// sending jobs
+	currentDate := time.Date(filter.TimePeriodStart.Year(), filter.TimePeriodStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+	for currentDate.Before(filter.TimePeriodEnd) {
+		year, month, _ := currentDate.Date()
+		jobs <- monthYearPair{year, int(month)}
+		currentDate = currentDate.AddDate(0, 1, 0)
+	}
+	close(jobs)
+	return <-games, <-err
 }
 
 type User struct {
@@ -39,12 +126,12 @@ type Game struct {
 	Black     User   `json:"black"`
 }
 
-func (g Game) UserGame(username string, until int) (*fetcher.UserGame, error) {
-	moves, err := fetcher.ParseMoves(g.Pgn+"\n", until)
+func (g Game) UserGame(username string, until int) (*fetching.UserGame, error) {
+	moves, err := fetching.ParseMoves(g.Pgn+"\n", until)
 	if err != nil {
 		return nil, err
 	}
-	game := &fetcher.UserGame{
+	game := &fetching.UserGame{
 		White:   g.White.Username == username,
 		EndTime: time.Unix(g.EndTime, 0),
 		Moves:   moves,
@@ -52,21 +139,17 @@ func (g Game) UserGame(username string, until int) (*fetcher.UserGame, error) {
 	return game, nil
 }
 
-type Archive struct {
-	Games []Game `json:"games"`
-}
+type filterPredicate func(game *Game) bool
 
-type FetchParams struct {
+type fetchParams struct {
 	userName string
 	year     int
 	month    int
-	filter   FilterPredicate
+	filter   filterPredicate
 	until    int
 }
 
-type FilterPredicate func(game *Game) bool
-
-func (f *Fetcher) Fetch(p FetchParams) ([]*fetcher.UserGame, error) {
+func (f *Fetcher) fetchMonthGames(p fetchParams) ([]*fetching.UserGame, error) {
 	var (
 		err      error
 		response *http.Response
@@ -103,7 +186,7 @@ func (f *Fetcher) Fetch(p FetchParams) ([]*fetcher.UserGame, error) {
 	if err != nil {
 		return nil, err
 	}
-	genericGames := make([]*fetcher.UserGame, 0, len(chessComGames))
+	genericGames := make([]*fetching.UserGame, 0, len(chessComGames))
 	for _, game := range chessComGames {
 		userGame, err := game.UserGame(p.userName, p.until)
 		if err != nil {
@@ -114,7 +197,7 @@ func (f *Fetcher) Fetch(p FetchParams) ([]*fetcher.UserGame, error) {
 	return genericGames, nil
 }
 
-func parseChessComGames(decoder *json.Decoder, filter FilterPredicate) ([]*Game, error) {
+func parseChessComGames(decoder *json.Decoder, filter filterPredicate) ([]*Game, error) {
 	// read `{"games":`
 	for i := 0; i < 3; i++ {
 		if t, err := decoder.Token(); err != nil {

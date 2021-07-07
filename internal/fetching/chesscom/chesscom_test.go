@@ -2,7 +2,7 @@ package chesscom
 
 import (
 	"encoding/json"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
 	"io"
 	"log"
@@ -23,7 +23,7 @@ type server struct {
 
 type testCase struct {
 	Server           server
-	Params           FetchParams
+	Params           fetchParams
 	ExpectedResponse []Game
 	IsErr            bool
 	ExpectedError    string
@@ -33,7 +33,7 @@ func evaluateTestCases(testCases []testCase, t *testing.T) {
 	for i, testCase := range testCases {
 		ts := httptest.NewServer(http.HandlerFunc(testCase.Server.mockChessCom))
 		fetcher := Fetcher{URL: ts.URL}
-		resp, err := fetcher.Fetch(testCase.Params)
+		resp, err := fetcher.fetchMonthGames(testCase.Params)
 		if testCase.IsErr {
 			if err == nil {
 				t.Errorf("case %v. Expected error but got nil", i)
@@ -69,7 +69,7 @@ func TestChessComRequest(t *testing.T) {
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: FetchParams{
+		Params: fetchParams{
 			userName: "Hofsiedge",
 			year:     2100,
 			month:    10,
@@ -82,7 +82,7 @@ func TestChessComRequest(t *testing.T) {
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: FetchParams{
+		Params: fetchParams{
 			userName: "NonExistentUser",
 			year:     2020,
 			month:    6,
@@ -107,15 +107,15 @@ func TestChessComUnmarshalling(t *testing.T) {
 		fixture       string
 		isError       bool
 		expectedError string
-		want          []*fetcher.UserGame
+		want          []*fetching.UserGame
 		name          string
 	}{{
-		fixture: "../../../testdata/fetcher/empty.json",
-		want:    []*fetcher.UserGame{},
+		fixture: "../../../testdata/fetching/empty.json",
+		want:    []*fetching.UserGame{},
 		name:    "UnmarshalEmpty",
 	}, {
-		fixture: "../../../testdata/fetcher/trivial.json",
-		want: []*fetcher.UserGame{{
+		fixture: "../../../testdata/fetching/trivial.json",
+		want: []*fetching.UserGame{{
 			White:   true,
 			EndTime: time.Unix(1622664410, 0),
 			Moves:   board.Moves(),
@@ -137,7 +137,7 @@ func TestChessComUnmarshalling(t *testing.T) {
 				_ = r.Body.Close()
 			}))
 			f := Fetcher{URL: ts.URL}
-			games, err := f.Fetch(FetchParams{userName: "qux"})
+			games, err := f.fetchMonthGames(fetchParams{userName: "qux"})
 			if err == nil && testCase.isError {
 				t.Errorf("Expected error, got nil")
 			}
