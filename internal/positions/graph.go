@@ -1,9 +1,11 @@
 package positions
 
 import (
+	"encoding/gob"
 	"fmt"
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
+	"os"
 	"time"
 )
 
@@ -23,14 +25,34 @@ type PositionNode struct {
 
 type Move struct {
 	To   *PositionNode
-	Move *chess.Move
+	Move string
 }
 
 type PositionGraph struct {
-	depth          int
-	whitePositions *PositionNode
-	blackPositions *PositionNode
-	positionMap    map[FEN]*PositionNode
+	Depth          int
+	WhitePositions *PositionNode
+	BlackPositions *PositionNode
+	PositionMap    map[FEN]*PositionNode
+}
+
+func DumpGraph(graph *PositionGraph, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	encoder := gob.NewEncoder(file)
+	return encoder.Encode(graph)
+}
+
+func LoadGraph(path string) (*PositionGraph, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	decoder := gob.NewDecoder(file)
+	graph := new(PositionGraph)
+	err = decoder.Decode(graph)
+	return graph, err
 }
 
 func NewPositionGraph(depth int) (*PositionGraph, error) {
@@ -38,10 +60,10 @@ func NewPositionGraph(depth int) (*PositionGraph, error) {
 		return nil, fmt.Errorf("expected depth > 1, got: %v", depth)
 	}
 	graph := PositionGraph{
-		depth:       depth,
-		positionMap: make(map[FEN]*PositionNode, 30),
+		Depth:       depth,
+		PositionMap: make(map[FEN]*PositionNode, 30),
 	}
-	for _, positions := range []**PositionNode{&graph.whitePositions, &graph.blackPositions} {
+	for _, positions := range []**PositionNode{&graph.WhitePositions, &graph.BlackPositions} {
 		*positions = &PositionNode{
 			Position: &Position{
 				FEN:       FEN(chess.StartingPosition().String()),
@@ -49,7 +71,6 @@ func NewPositionGraph(depth int) (*PositionGraph, error) {
 				Evaluated: true,
 			},
 			LastPlayed: time.Time{},
-			Moves:      make([]*Move, 0, 5),
 		}
 	}
 	return &graph, nil
@@ -60,17 +81,17 @@ func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 	board := chess.NewGame()
 	var currentNode *PositionNode
 	if game.White {
-		currentNode = g.whitePositions
+		currentNode = g.WhitePositions
 	} else {
-		currentNode = g.blackPositions
+		currentNode = g.BlackPositions
 	}
 	for _, move := range game.Moves {
-		if err := board.Move(move); err != nil {
+		if err := board.MoveStr(move); err != nil {
 			return err
 		}
 		var nextNode *PositionNode
 		pos := FEN(board.Position().String())
-		if node, found := g.positionMap[pos]; found {
+		if node, found := g.PositionMap[pos]; found {
 			nextNode = node
 		} else {
 			nextNode = &PositionNode{
@@ -78,9 +99,8 @@ func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 					FEN: pos,
 				},
 				LastPlayed: game.EndTime,
-				Moves:      make([]*Move, 0, 1),
 			}
-			g.positionMap[pos] = nextNode
+			g.PositionMap[pos] = nextNode
 		}
 		currentNode.Moves = append(currentNode.Moves, &Move{nextNode, move})
 		currentNode = nextNode
@@ -95,7 +115,7 @@ func (g *PositionGraph) AddGame(game fetching.UserGame) error {
 func (g PositionGraph) GetVariations() <-chan []*Move {
 	out := make(chan []*Move)
 	go func() {
-		for _, startingNode := range []*PositionNode{g.whitePositions, g.blackPositions} {
+		for _, startingNode := range []*PositionNode{g.WhitePositions, g.BlackPositions} {
 			for _, move := range startingNode.Moves {
 				traverseMoves(move, make([]*Move, 0, 1), out)
 			}

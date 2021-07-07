@@ -118,7 +118,7 @@ func TestChessComUnmarshalling(t *testing.T) {
 		want: []*fetching.UserGame{{
 			White:   true,
 			EndTime: time.Unix(1622664410, 0),
-			Moves:   board.Moves(),
+			Moves:   []string{"e4", "e5"},
 		}},
 		name: "UnmarshalTrivial",
 	}}
