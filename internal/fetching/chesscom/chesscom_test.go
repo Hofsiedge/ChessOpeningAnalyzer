@@ -2,7 +2,7 @@ package chesscom
 
 import (
 	"encoding/json"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetcher"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/notnil/chess"
 	"io"
 	"log"
@@ -23,7 +23,7 @@ type server struct {
 
 type testCase struct {
 	Server           server
-	Params           FetchParams
+	Params           fetchParams
 	ExpectedResponse []Game
 	IsErr            bool
 	ExpectedError    string
@@ -33,7 +33,7 @@ func evaluateTestCases(testCases []testCase, t *testing.T) {
 	for i, testCase := range testCases {
 		ts := httptest.NewServer(http.HandlerFunc(testCase.Server.mockChessCom))
 		fetcher := Fetcher{URL: ts.URL}
-		resp, err := fetcher.Fetch(testCase.Params)
+		resp, err := fetcher.fetchMonthGames(testCase.Params)
 		if testCase.IsErr {
 			if err == nil {
 				t.Errorf("case %v. Expected error but got nil", i)
@@ -69,7 +69,7 @@ func TestChessComRequest(t *testing.T) {
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: FetchParams{
+		Params: fetchParams{
 			userName: "Hofsiedge",
 			year:     2100,
 			month:    10,
@@ -82,7 +82,7 @@ func TestChessComRequest(t *testing.T) {
 			StatusCode: 404,
 			HasBody:    true,
 		},
-		Params: FetchParams{
+		Params: fetchParams{
 			userName: "NonExistentUser",
 			year:     2020,
 			month:    6,
@@ -107,18 +107,18 @@ func TestChessComUnmarshalling(t *testing.T) {
 		fixture       string
 		isError       bool
 		expectedError string
-		want          []*fetcher.UserGame
+		want          []*fetching.UserGame
 		name          string
 	}{{
-		fixture: "../../../testdata/fetcher/empty.json",
-		want:    []*fetcher.UserGame{},
+		fixture: "../../../testdata/fetching/empty.json",
+		want:    []*fetching.UserGame{},
 		name:    "UnmarshalEmpty",
 	}, {
-		fixture: "../../../testdata/fetcher/trivial.json",
-		want: []*fetcher.UserGame{{
+		fixture: "../../../testdata/fetching/trivial.json",
+		want: []*fetching.UserGame{{
 			White:   true,
 			EndTime: time.Unix(1622664410, 0),
-			Moves:   board.Moves(),
+			Moves:   []string{"e4", "e5"},
 		}},
 		name: "UnmarshalTrivial",
 	}}
@@ -137,7 +137,7 @@ func TestChessComUnmarshalling(t *testing.T) {
 				_ = r.Body.Close()
 			}))
 			f := Fetcher{URL: ts.URL}
-			games, err := f.Fetch(FetchParams{userName: "qux"})
+			games, err := f.fetchMonthGames(fetchParams{userName: "qux"})
 			if err == nil && testCase.isError {
 				t.Errorf("Expected error, got nil")
 			}
@@ -151,5 +151,32 @@ func TestChessComUnmarshalling(t *testing.T) {
 				t.Errorf("case %v. Expected \"%#v\" but got \"%#v\"", testCase.name, testCase.want, games)
 			}
 		})
+	}
+}
+
+func TestChessComRealData(t *testing.T) {
+	file, err := os.Open("../../../testdata/fetching/sample_response.json")
+	if err != nil {
+		t.Error("could not open a sample file")
+		return
+	}
+	responseData, _ := io.ReadAll(file)
+	srv := server{
+		Response:   responseData,
+		StatusCode: 200,
+		HasBody:    true,
+	}
+	ts := httptest.NewServer(http.HandlerFunc(srv.mockChessCom))
+	fetcher := Fetcher{URL: ts.URL}
+	var games []*fetching.UserGame
+	if games, err = fetcher.Fetch("Hofsiedge", fetching.FilterOptions{
+		TimePeriodStart:  time.Date(2021, 7, 1, 0, 0, 0, 0, time.UTC),
+		TimePeriodEnd:    time.Date(2021, 7, 15, 0, 0, 0, 0, time.UTC),
+		NumberOfMovesCap: 5,
+	}, 1); err != nil {
+		t.Error(err)
+	}
+	if len(games) != 28 {
+		t.Errorf("expected 28 games, got %v", len(games))
 	}
 }
