@@ -20,8 +20,12 @@ type FetchCmdConfig struct {
 
 func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "fetch",
+		Use:   "fetch [platform] [username] [start_date] [end_date]",
 		Short: "fetch your games from an online chess platform",
+		ValidArgs: []string{"platform", "username", "start_date", "end_date"},
+		Example: `  openinganalyzer fetch chesscom YourUsername 2021-10-01 2021-12-31 -m 5
+	Fetch from chess.com, username - YourUsername, start_date - 01.10.2021,
+	end_date - 31.12.2021, number of moves - 5`,
 		Args:  cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			platform := args[0]
