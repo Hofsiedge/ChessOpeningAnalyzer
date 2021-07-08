@@ -53,10 +53,10 @@ func (srv server) mockChessCom(w http.ResponseWriter, r *http.Request) {
 	if srv.HasBody {
 		switch srv.Response.(type) {
 		case []byte:
-			w.Write(srv.Response.([]byte))
+			_, _ = w.Write(srv.Response.([]byte))
 		default:
 			jsonBody, _ := json.Marshal(srv.Response)
-			w.Write(jsonBody)
+			_, _ = w.Write(jsonBody)
 		}
 	}
 	r.Body.Close()

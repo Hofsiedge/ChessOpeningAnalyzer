@@ -14,7 +14,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-
+
       - name: Get dependencies
+        env:
+          GOPROXY: "https://proxy.golang.org"
         run: |
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
