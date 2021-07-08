@@ -11,9 +11,9 @@ import (
 func (m *Move) String() string {
 	score := ""
 	if p := m.To.Position; p.Evaluated {
-		score = fmt.Sprintf("-> %v", m.To.Position.Score)
+		score = fmt.Sprintf(" -> %v", m.To.Position.Score)
 	}
-	return fmt.Sprintf("%-5v %v", m.Move, score)
+	return strings.Trim(fmt.Sprintf("%-5v%v", m.Move, score), " ")
 }
 
 // String implements fmt.Stringer interface
@@ -57,9 +57,9 @@ func (n *PositionNode) print(out io.Writer, prefix string, printDate bool) {
 		}
 		date := ""
 		if printDate && len(move.To.Moves) == 0 {
-			date = move.To.LastPlayed.Format("(02.01.2006)")
+			date = move.To.LastPlayed.Format(" (02.01.2006)")
 		}
-		_, _ = fmt.Fprintf(out, "%v %v %v\n", prefix+movePrefix, move, date)
+		_, _ = fmt.Fprintf(out, "%v %v%v\n", prefix+movePrefix, move, date)
 		move.To.print(
 			out,
 			prefix+leftBorder+"     ",
