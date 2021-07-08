@@ -45,7 +45,7 @@ func TestPrint(t *testing.T) {
 		return
 	}
 
-	file, err := os.OpenFile("../../testdata/cli/sample.txt", os.O_RDONLY, 666)
+	file, err := os.OpenFile("../../testdata/cli/sample.txt", os.O_RDONLY, 0666)
 	if err != nil {
 		t.Error(err)
 		return

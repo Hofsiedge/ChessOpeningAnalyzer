@@ -46,7 +46,7 @@ func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 			filter.NumberOfMovesCap = MoveCapFlag
 			var games []*fetching.UserGame
 			if games, err = fetcher.Fetch(username, filter, 1); err != nil {
-				return fmt.Errorf("error fetching games: %v\n", err)
+				return fmt.Errorf("error fetching games: %v", err)
 			}
 			graph, _ := positions.NewPositionGraph(MoveCapFlag)
 			for _, game := range games {

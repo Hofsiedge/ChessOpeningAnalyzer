@@ -9,6 +9,9 @@ import (
 
 func TestGraphBinary(t *testing.T) {
 	graph, err := NewPositionGraph(4)
+	if err != nil {
+		t.Error(err)
+	}
 	var moves []string
 	pgn := "\n1. e4 e5 2. Nf3 Nc6 3. d4 exd4 1-0\n\n"
 	if moves, err = fetching.ParseMoves(pgn, 4); err != nil {
