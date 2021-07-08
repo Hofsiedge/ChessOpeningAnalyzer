@@ -1,0 +1,17 @@
+Position graph.
+Depth: 3
+White positions:
+└─── e4
+      ├─── e5
+      │     └─── Nf3
+      │           ├─── Nc6
+      │           │     └─── d4
+      │           │           └─── exd4
+      │           └─── Nf6
+      │                 └─── Nc3
+      │                       └─── Nc6
+      └─── c5
+            └─── c3
+                  └─── Nc6
+                        └─── d4
+                              └─── cxd4

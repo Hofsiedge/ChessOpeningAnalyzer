@@ -1,0 +1,1 @@
+{"games":[{"url":"game_url","pgn":"\n1. e4 e5 0-1\n","time_control":"60","end_time":1622664410,"rated":true,"fen":"3r2k1/pp3ppp/4b1n1/4P3/3r4/5PKP/PPq3P1/8 w - -","time_class":"bullet","rules":"chess","white":{"rating":525,"result":"timeout","@id":"qux","username":"qux"},"black":{"rating":595,"result":"win","@id":"buzz","username":"buzz"}}]}
