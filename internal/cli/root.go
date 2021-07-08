@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/chesscom"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -32,12 +33,9 @@ func init() {
 	// TODO: flags - color, workers
 	// TODO: set default time period to current month
 	// fetch
-	fetchCmd.Flags().StringVarP(&FetchOutputFlag, "output", "o", "openings.out", "output file")
-	fetchCmd.Flags().IntVarP(&MoveCapFlag, "moves", "m", 5, "how deep you want a position graph to be")
+	fetchCmd := NewFetchCommand(FetchCmdConfig{ChessComUrl: chesscom.ChessComPubAPIUrl})
 	rootCmd.AddCommand(fetchCmd)
-
 	// print
 	printCmd := NewPrintCmd()
-	printCmd.Flags().BoolVarP(&PrintDateFlag, "dates", "d", false, "print out the last date for each position")
 	rootCmd.AddCommand(printCmd)
 }

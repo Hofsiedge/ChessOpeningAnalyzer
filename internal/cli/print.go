@@ -9,7 +9,7 @@ import (
 var PrintDateFlag bool
 
 func NewPrintCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "print a position graph",
 		Args:  cobra.ExactArgs(1),
@@ -23,4 +23,6 @@ func NewPrintCmd() *cobra.Command {
 			return err
 		},
 	}
+	cmd.Flags().BoolVarP(&PrintDateFlag, "dates", "d", false, "print out the last date for each position")
+	return cmd
 }
