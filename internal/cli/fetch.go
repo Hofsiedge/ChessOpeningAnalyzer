@@ -40,7 +40,7 @@ func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 			for i, field := range []*time.Time{&filter.TimePeriodStart, &filter.TimePeriodEnd} {
 				*field, err = time.Parse("2006-01-02", args[2+i])
 				if err != nil {
-					return err
+					return fmt.Errorf("error parsing a date: %v", err)
 				}
 			}
 			filter.NumberOfMovesCap = MoveCapFlag
