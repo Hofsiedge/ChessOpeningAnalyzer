@@ -1,11 +1,10 @@
-name: tests
+name: check
 on: [push, pull_request]
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     steps:
-
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -31,14 +30,12 @@ jobs:
               dep ensure
           fi
 
-      - name: Test & coverage
-        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Install linters & checkers
+        env:
+          GOPROXY: "https://proxy.golang.org"
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.out
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - name: Run linters & checkers
+        run:
+          staticcheck ./...
