@@ -41,7 +41,6 @@ var fetchCmd = &cobra.Command{
 			}
 		}
 		filter.NumberOfMovesCap = MoveCapFlag
-		fmt.Printf("Would fetch data from chesscom with params: %v, %v\n", username, filter)
 		var games []*fetching.UserGame
 		if games, err = fetcher.Fetch(username, filter, 1); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "error fetching games: %v\n", err)

@@ -37,6 +37,7 @@ func init() {
 	rootCmd.AddCommand(fetchCmd)
 
 	// print
+	printCmd := NewPrintCmd()
 	printCmd.Flags().BoolVarP(&PrintDateFlag, "dates", "d", false, "print out the last date for each position")
 	rootCmd.AddCommand(printCmd)
 }
