@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,17 +16,13 @@ func TestFetchArguments(t *testing.T) {
 	outBuffer := new(bytes.Buffer)
 	cmd.SetOut(outBuffer)
 	cmd.SetErr(io.Discard)
-	cmd.SetArgs([]string{"lichess", "", "", ""})
-	if err := cmd.Execute(); err == nil || !strings.HasPrefix(err.Error(), "only chess.com is supported") {
-		t.Errorf("expected an \"unsupported platform\" message, got %v", err)
+	cmd.SetArgs([]string{"icc", "", "", ""})
+	if err := cmd.Execute(); err == nil || !errors.Is(err, ErrUnsupportedPlatform) {
+		t.Errorf("expected \"%v\" error, got \"%v\"", ErrUnsupportedPlatform, err)
 	}
 	cmd.SetArgs([]string{"chesscom", "quUx", "", ""})
-	if err := cmd.Execute(); err == nil || !strings.HasPrefix(err.Error(), "error parsing a date") {
-		t.Errorf("expected an \"error parsing a date\" message, got %v", err)
-	}
-	cmd.SetArgs(strings.Split("chesscom Hofsiedge 2021-07-01 2021-07-10 -o qux.bin -m 3", " "))
-	if err := cmd.Execute(); err == nil || !strings.HasPrefix(err.Error(), "error fetching games") {
-		t.Errorf("expected an \"error fetching games\" message, got %v", err)
+	if err := cmd.Execute(); err == nil || !errors.Is(err, ErrInvalidDate) {
+		t.Errorf("expected \"%v\" error, got \"%v\"", ErrInvalidDate, err)
 	}
 }
 

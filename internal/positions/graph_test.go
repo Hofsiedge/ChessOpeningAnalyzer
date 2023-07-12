@@ -1,9 +1,12 @@
 package positions
 
 import (
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
+	"github.com/notnil/chess"
 )
 
 func TestAddGame(t *testing.T) {
@@ -14,12 +17,17 @@ func TestAddGame(t *testing.T) {
 	}
 	moves := make([][]string, 2)
 	PGNs := []string{
-		"\n1. e4 e5 2. Nf3 Nc6 3. d4 exd4 1-0\n\n",
-		"\n1. e4 c5 2. c3 Nc6 3. d4 cxd4 1-0\n\n",
+		"[Key \"Value\"]\n1. e4 e5 2. Nf3 Nc6 3. d4 exd4 1-0\n\n",
+		"[Key \"Value\"]\n1. e4 c5 2. c3 Nc6 3. d4 cxd4 1-0\n\n",
 	}
-	for i := range PGNs {
-		if moves[i], err = fetching.ParseMoves(PGNs[i], 4); err != nil {
-			t.Errorf("could not parse moves from a test PGN: %v;\nError: %v", PGNs[i], err)
+	for i, PGN := range PGNs {
+		scanner := chess.NewScanner(strings.NewReader(PGN))
+		if !scanner.Scan() {
+			panic("invalid test data. chess.Scanner could not parse PGN string: %s")
+		}
+		game := scanner.Next()
+		if moves[i], err = fetching.ParseMoves(game, 4); err != nil {
+			t.Errorf("could not parse moves from a test PGN: %v;\nError: %v", PGN, err)
 		}
 	}
 	games := make([]fetching.UserGame, 2)

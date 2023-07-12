@@ -114,7 +114,5 @@ Flags:
   * `eval` - evaluate a position graph with a UCI engine (e.g. Stockfish)
   * `merge` - merge several position graphs into one
   * `viz` - visualize a position graph with graphviz
-* **Chess platforms**
-  * lichess.org
 * **Format**
   * Web
