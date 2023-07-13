@@ -35,12 +35,11 @@ func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 		SuggestFor: []string{"etch", "ftch", "fech", "fetc", "feth", "get", "download"},
 		Short:      "fetch your games from an online chess platform",
 		Long: `fetch your games from an online chess platform (chesscom/lichess).
-			dates are specified in YYYY-MM-DD format. optionally accepts number of moves
-			as -m flag`,
+dates are specified in YYYY-MM-DD format. optionally accepts number of moves as -m flag`,
 		ValidArgs: []string{"platform", "username", "start_date", "end_date"},
-		Example: `  openinganalyzer fetch chesscom YourUsername 2021-10-01 2021-12-31 -m 5
-	Fetch from chess.com, username - YourUsername, start_date - 01.10.2021,
-	end_date - 31.12.2021, number of moves - 5`,
+		Example: `$ openinganalyzer fetch chesscom YourUsername 2021-10-01 2021-12-31 -m 5
+  Fetch from chess.com, username - YourUsername, start_date - 01.10.2021,
+  end_date - 31.12.2021, number of moves - 5`,
 		Args: cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			platform := args[0]

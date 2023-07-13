@@ -12,11 +12,11 @@ func NewPrintCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "print [path]",
 		Short: "print a position graph",
-		Example: `  openinganalyzer print openings.out -d
-	Print out a move tree of the position graph stored in openings.out
-	with dates next to leaf-moves`,
+		Example: `$ openinganalyzer print openings.out -d
+  Print out a move tree of the position graph stored in openings.out
+  with dates next to leaf-moves`,
 		ValidArgs: []string{"path"},
-		Args:  cobra.ExactArgs(1),
+		Args:      cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := args[0]
 			graph, err := positions.LoadGraph(path)
