@@ -148,6 +148,8 @@ func TestChessComUnmarshalling(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(testCase.want, games) {
+				log.Printf("%v", games[0])
+				log.Printf("%v", testCase.want[0])
 				t.Errorf("case %v. Expected \"%#v\" but got \"%#v\"", testCase.name, testCase.want, games)
 			}
 		})

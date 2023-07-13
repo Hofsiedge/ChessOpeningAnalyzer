@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/chesscom"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/lichess"
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/positions"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 var (
@@ -14,29 +18,43 @@ var (
 	MoveCapFlag     int
 )
 
+var (
+	ErrUnsupportedPlatform = errors.New("unsupported platform")
+	ErrInvalidDate         = errors.New("invalid date")
+	ErrFetchingError       = errors.New("data fetching error")
+)
+
 type FetchCmdConfig struct {
-	ChessComUrl string
+	ChessComURL string
+	LichessURL  url.URL
 }
 
 func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "fetch [platform] [username] [start_date] [end_date]",
-		Short: "fetch your games from an online chess platform",
+		Use:        "fetch platform username start_date end_date [-m number_of_moves]",
+		SuggestFor: []string{"etch", "ftch", "fech", "fetc", "feth", "get", "download"},
+		Short:      "fetch your games from an online chess platform",
+		Long: `fetch your games from an online chess platform (chesscom/lichess).
+dates are specified in YYYY-MM-DD format. optionally accepts number of moves as -m flag`,
 		ValidArgs: []string{"platform", "username", "start_date", "end_date"},
-		Example: `  openinganalyzer fetch chesscom YourUsername 2021-10-01 2021-12-31 -m 5
-	Fetch from chess.com, username - YourUsername, start_date - 01.10.2021,
-	end_date - 31.12.2021, number of moves - 5`,
-		Args:  cobra.ExactArgs(4),
+		Example: `$ openinganalyzer fetch chesscom YourUsername 2021-10-01 2021-12-31 -m 5
+  Fetch from chess.com, username - YourUsername, start_date - 01.10.2021,
+  end_date - 31.12.2021, number of moves - 5`,
+		Args: cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			platform := args[0]
 			var fetcher fetching.GameFetcher
 			switch platform {
 			case "chesscom":
 				fetcher = &chesscom.Fetcher{
-					URL: cfg.ChessComUrl,
+					URL: cfg.ChessComURL,
+				}
+			case "lichess":
+				fetcher = &lichess.Fetcher{
+					URL: cfg.LichessURL,
 				}
 			default:
-				return fmt.Errorf("only chess.com is supported for now")
+				return fmt.Errorf("%w: %s. Only chesscom and lichess are supported for now", ErrUnsupportedPlatform, platform)
 			}
 			username := args[1]
 			filter := fetching.FilterOptions{}
@@ -44,13 +62,13 @@ func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 			for i, field := range []*time.Time{&filter.TimePeriodStart, &filter.TimePeriodEnd} {
 				*field, err = time.Parse("2006-01-02", args[2+i])
 				if err != nil {
-					return fmt.Errorf("error parsing a date: %v", err)
+					return fmt.Errorf("%w (%s): %w", ErrInvalidDate, field, err)
 				}
 			}
 			filter.NumberOfMovesCap = MoveCapFlag
 			var games []*fetching.UserGame
 			if games, err = fetcher.Fetch(username, filter, 1); err != nil {
-				return fmt.Errorf("error fetching games: %v", err)
+				return fmt.Errorf("%w: %w", ErrFetchingError, err)
 			}
 			graph, _ := positions.NewPositionGraph(MoveCapFlag)
 			for _, game := range games {

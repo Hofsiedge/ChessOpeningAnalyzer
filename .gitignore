@@ -1,3 +1,6 @@
 .idea/
 *.out
 *.bin
+
+dist
+cover.html

@@ -1,10 +1,16 @@
 package fetching
 
 import (
+	"errors"
 	"fmt"
-	"github.com/notnil/chess"
-	"strings"
 	"time"
+
+	"github.com/notnil/chess"
+)
+
+var (
+	UserNotFoundError = errors.New("user not found")
+	ArgumentError     = errors.New("invalid argument")
 )
 
 type UserGame struct {
@@ -29,18 +35,19 @@ type GameFetcher interface {
 	Fetch(username string, filter FilterOptions, workers int) ([]*UserGame, error)
 }
 
-// ParseMoves parses first until moves from `pgn` PGN string
+// ParseMoves parses first `until` moves from `game`
 // If until == 0 all the moves are parsed
-func ParseMoves(pgn string, until int) ([]string, error) {
+func ParseMoves(game *chess.Game, until int) ([]string, error) {
 	if until < 0 {
-		return nil, fmt.Errorf("expected until >= 0, got %v", until)
+		return nil, fmt.Errorf(
+			"fetcher.ParseMoves: %w: expected until >= 0, got %v",
+			ArgumentError, until)
 	}
-	pgnReader := strings.NewReader(pgn)
-	scanner := chess.NewScanner(pgnReader)
-	if !scanner.Scan() && scanner.Err() != nil {
-		return nil, fmt.Errorf("could not parse moves from a PGN: %v\nError: %v", pgn, scanner.Err())
+	if game == nil {
+		return nil, fmt.Errorf(
+			"fetcher.ParseMoves: %w: got a nil game",
+			ArgumentError)
 	}
-	game := scanner.Next()
 	notation := chess.AlgebraicNotation{}
 	moves := game.Moves()
 	gamePositions := game.Positions()

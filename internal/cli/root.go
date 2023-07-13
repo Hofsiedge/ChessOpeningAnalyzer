@@ -2,9 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/chesscom"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/chesscom"
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching/lichess"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -33,7 +35,10 @@ func init() {
 	// TODO: flags - color, workers
 	// TODO: set default time period to current month
 	// fetch
-	fetchCmd := NewFetchCommand(FetchCmdConfig{ChessComUrl: chesscom.ChessComPubAPIUrl})
+	fetchCmd := NewFetchCommand(FetchCmdConfig{
+		ChessComURL: chesscom.ChessComPubAPIUrl,
+		LichessURL:  lichess.LichessURL,
+	})
 	rootCmd.AddCommand(fetchCmd)
 	// print
 	printCmd := NewPrintCmd()

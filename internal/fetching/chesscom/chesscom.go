@@ -3,12 +3,14 @@ package chesscom
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
+	"github.com/notnil/chess"
 )
 
 const ChessComPubAPIUrl = "https://api.chess.com/pub"
@@ -131,16 +133,22 @@ type Game struct {
 }
 
 func (g Game) UserGame(username string, until int) (*fetching.UserGame, error) {
-	moves, err := fetching.ParseMoves(g.Pgn+"\n", until)
-	if err != nil {
-		return nil, err
+	pgnReader := strings.NewReader(g.Pgn)
+	scanner := chess.NewScanner(pgnReader)
+	if !scanner.Scan() && scanner.Err() != nil {
+		return nil, fmt.Errorf("chesscom.UserGame: could not parse moves from a PGN. Error: %v", scanner.Err())
 	}
-	game := &fetching.UserGame{
+	game := scanner.Next()
+	moves, err := fetching.ParseMoves(game, until)
+	if err != nil {
+		return nil, fmt.Errorf("chesscom.UserGame: %w", err)
+	}
+	userGame := &fetching.UserGame{
 		White:   g.White.Username == username,
 		EndTime: time.Unix(g.EndTime, 0),
 		Moves:   moves,
 	}
-	return game, nil
+	return userGame, nil
 }
 
 type filterPredicate func(game *Game) bool
