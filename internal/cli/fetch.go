@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Hofsiedge/ChessOpeningAnalyzer/internal/fetching"
@@ -24,7 +25,8 @@ var (
 )
 
 type FetchCmdConfig struct {
-	ChessComUrl string
+	ChessComURL string
+	LichessURL  url.URL
 }
 
 func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
@@ -46,10 +48,12 @@ func NewFetchCommand(cfg FetchCmdConfig) *cobra.Command {
 			switch platform {
 			case "chesscom":
 				fetcher = &chesscom.Fetcher{
-					URL: cfg.ChessComUrl,
+					URL: cfg.ChessComURL,
 				}
 			case "lichess":
-				fetcher = &lichess.Fetcher{}
+				fetcher = &lichess.Fetcher{
+					URL: cfg.LichessURL,
+				}
 			default:
 				return fmt.Errorf("%w: %s. Only chesscom and lichess are supported for now", ErrUnsupportedPlatform, platform)
 			}

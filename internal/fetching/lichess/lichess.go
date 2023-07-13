@@ -14,6 +14,11 @@ import (
 	"github.com/notnil/chess"
 )
 
+var LichessURL = url.URL{
+	Scheme: "https",
+	Host:   "lichess.org",
+}
+
 var (
 	ErrInvalidUserName = errors.New("invalid username")
 	ErrRequestError    = errors.New("request error")
@@ -21,6 +26,8 @@ var (
 )
 
 type Fetcher struct {
+	// only Scheme and Host fields are used
+	URL url.URL
 }
 
 func (f *Fetcher) Fetch(username string, filter fetching.FilterOptions, _ int) ([]*fetching.UserGame, error) {
@@ -28,14 +35,19 @@ func (f *Fetcher) Fetch(username string, filter fetching.FilterOptions, _ int) (
 		err      error
 		response *http.Response
 	)
-	requestURL, err := makeLichessURL(username, filter)
+	requestURL, err := f.makeLichessURL(username, filter)
 	log.Printf("performing GET request to %s", requestURL.String())
 	if response, err = http.Get(requestURL.String()); err != nil {
 		log.Printf("attempted to perform a GET request to %s", &requestURL)
 		return nil, fmt.Errorf("lichess.Fetch: http.Get error: %w", err)
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
+	switch response.StatusCode {
+	case http.StatusOK:
+		break
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("%w: %w", ErrRequestError, fetching.UserNotFoundError)
+	default:
 		return nil, fmt.Errorf("%w: status code %d", ErrRequestError, response.StatusCode)
 	}
 
@@ -71,7 +83,7 @@ func (f *Fetcher) Fetch(username string, filter fetching.FilterOptions, _ int) (
 	return games, nil
 }
 
-func makeLichessURL(username string, filter fetching.FilterOptions) (url.URL, error) {
+func (f *Fetcher) makeLichessURL(username string, filter fetching.FilterOptions) (url.URL, error) {
 	path, err := url.JoinPath("api", "games", "user", strings.ToLower(username))
 	if err != nil {
 		return url.URL{}, ErrInvalidUserName
@@ -91,8 +103,10 @@ func makeLichessURL(username string, filter fetching.FilterOptions) (url.URL, er
 		}
 	}
 	requestURL := url.URL{
-		Scheme:   "https",
-		Host:     "lichess.org",
+		// Scheme:   "https",
+		// Host:     "lichess.org",
+		Scheme:   f.URL.Scheme,
+		Host:     f.URL.Host,
 		Path:     path,
 		RawQuery: queryParams.Encode(),
 	}
@@ -107,8 +121,6 @@ func parseLichessPGN(reader io.Reader, username string, filter fetching.FilterOp
 	go func() {
 		for decoder.Scan() {
 			game := decoder.Next()
-
-			log.Printf(game.String())
 
 			// reading color
 			userPlaysWhite, err := userIsWhite(game, username)

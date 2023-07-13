@@ -8,6 +8,11 @@ import (
 	"github.com/notnil/chess"
 )
 
+var (
+	UserNotFoundError = errors.New("user not found")
+	ArgumentError     = errors.New("invalid argument")
+)
+
 type UserGame struct {
 	White   bool
 	EndTime time.Time
@@ -34,10 +39,14 @@ type GameFetcher interface {
 // If until == 0 all the moves are parsed
 func ParseMoves(game *chess.Game, until int) ([]string, error) {
 	if until < 0 {
-		return nil, fmt.Errorf("expected until >= 0, got %v", until)
+		return nil, fmt.Errorf(
+			"fetcher.ParseMoves: %w: expected until >= 0, got %v",
+			ArgumentError, until)
 	}
 	if game == nil {
-		return nil, errors.New("fetcher.ParseMoves: got a nil game")
+		return nil, fmt.Errorf(
+			"fetcher.ParseMoves: %w: got a nil game",
+			ArgumentError)
 	}
 	notation := chess.AlgebraicNotation{}
 	moves := game.Moves()

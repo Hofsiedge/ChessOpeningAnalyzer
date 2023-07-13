@@ -48,6 +48,12 @@
           mkdir -p dist/${version}
           ${build-all}
         '';
+
+        run-tests = ''
+          go test ./... -coverprofile=cover.out
+          go tool cover -html=cover.out -o cover.html
+          rm cover.out
+        '';
       });
     back = with pkgs; [go_1_20 gopls delve];
   in {

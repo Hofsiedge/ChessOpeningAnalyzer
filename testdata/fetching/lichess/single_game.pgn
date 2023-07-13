@@ -1,0 +1,16 @@
+[Event "Casual Rapid game"]
+[Site "https://lichess.org/link_to_game"]
+[Date "2023.06.01"]
+[White "Player1"]
+[Black "Player2"]
+[Result "0-1"]
+[UTCDate "2023.06.01"]
+[UTCTime "01:02:03"]
+[WhiteElo "1500"]
+[BlackElo "1500"]
+[Variant "Standard"]
+[TimeControl "600+0"]
+[ECO "C47"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nc3 Nc6 4. d4 d6 5. d5 Ne7 6. Bb5+ Bd7 7. Bxd7+ Qxd7 8. Be3 Qg4 9. O-O Rd8 10. Bxa7 Nfxd5 11. Nxd5 Nxd5 12. exd5 Qb4 13. b3 Qa5 14. Be3 Rd7 15. Bd2 Qxd5 16. c4 Qe4 17. Ng5 Qg6 18. h4 Be7 19. h5 Qd3 20. Nh3 d5 21. Re1 Rd6 22. Re3 Qd4 23. Qc1 Qg4 24. Qa3 O-O 25. Rxe5 Rg6 26. Qxe7 Qxg2# 0-1

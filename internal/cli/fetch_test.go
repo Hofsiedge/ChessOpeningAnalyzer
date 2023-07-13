@@ -6,13 +6,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
 )
 
 func TestFetchArguments(t *testing.T) {
-	cmd := NewFetchCommand(FetchCmdConfig{ChessComUrl: ""})
+	cmd := NewFetchCommand(FetchCmdConfig{
+		ChessComURL: "",
+		LichessURL:  url.URL{Scheme: "", Host: ""},
+	})
 	outBuffer := new(bytes.Buffer)
 	cmd.SetOut(outBuffer)
 	cmd.SetErr(io.Discard)
@@ -37,7 +41,7 @@ func TestFetchCommand(t *testing.T) {
 		_, _ = writer.Write(responseBody)
 		request.Body.Close()
 	}))
-	cmd := NewFetchCommand(FetchCmdConfig{ChessComUrl: testServer.URL})
+	cmd := NewFetchCommand(FetchCmdConfig{ChessComURL: testServer.URL})
 	buffer := new(bytes.Buffer)
 	cmd.SetOut(buffer)
 	cmd.SetErr(io.Discard)
